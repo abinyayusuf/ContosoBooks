@@ -77,10 +77,11 @@ namespace ContosoBooks.Controllers
         // POST: Authors/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(Author author)
+        public IActionResult Edit(int id, Author author)
         {
             if (ModelState.IsValid)
             {
+                author.AuthorID = id;
                 _context.Update(author);
                 _context.SaveChanges();
                 return RedirectToAction("Index");

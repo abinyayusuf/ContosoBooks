@@ -3,6 +3,7 @@ using Microsoft.AspNet.Mvc;
 using Microsoft.AspNet.Mvc.Rendering;
 using Microsoft.Data.Entity;
 using ContosoBooks.Models;
+using System.Collections.Generic;
 
 namespace ContosoBooks.Controllers
 {
@@ -30,7 +31,8 @@ namespace ContosoBooks.Controllers
                 return HttpNotFound();
             }
 
-            Book book = _context.Book.Single(m => m.BookID == id);
+            Book book = _context.Book.Include(b => b.Author).Single(m => m.BookID == id);
+            
             if (book == null)
             {
                 return HttpNotFound();
@@ -42,7 +44,8 @@ namespace ContosoBooks.Controllers
         // GET: Books/Create
         public IActionResult Create()
         {
-            ViewData["AuthorID"] = new SelectList(_context.Set<Author>(), "AuthorID", "Author");
+            ViewBag.Items = GetAuthorsListItems();
+            
             return View();
         }
 
@@ -57,7 +60,7 @@ namespace ContosoBooks.Controllers
                 _context.SaveChanges();
                 return RedirectToAction("Index");
             }
-            ViewData["AuthorID"] = new SelectList(_context.Set<Author>(), "AuthorID", "Author", book.AuthorID);
+            
             return View(book);
         }
 
@@ -74,22 +77,27 @@ namespace ContosoBooks.Controllers
             {
                 return HttpNotFound();
             }
-            ViewData["AuthorID"] = new SelectList(_context.Set<Author>(), "AuthorID", "Author", book.AuthorID);
+
+            ViewBag.Items = GetAuthorsListItems(book.AuthorID);
+
             return View(book);
         }
 
         // POST: Books/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(Book book)
+        public IActionResult Edit(int id, Book book)
         {
             if (ModelState.IsValid)
             {
+                book.BookID = id;
                 _context.Update(book);
                 _context.SaveChanges();
                 return RedirectToAction("Index");
             }
-            ViewData["AuthorID"] = new SelectList(_context.Set<Author>(), "AuthorID", "Author", book.AuthorID);
+
+            ViewBag.Items = GetAuthorsListItems(book.AuthorID);
+
             return View(book);
         }
 
@@ -120,6 +128,20 @@ namespace ContosoBooks.Controllers
             _context.Book.Remove(book);
             _context.SaveChanges();
             return RedirectToAction("Index");
+        }
+
+        private IEnumerable<SelectListItem> GetAuthorsListItems(int selected = -1)
+        {
+            var authorList = _context.Author.ToList();
+
+            return authorList
+                .OrderBy(author => author.LastName)
+                .Select(author => new SelectListItem
+                {
+                    Text = $"{author.LastName}, {author.FirstMidName}",
+                    Value = author.AuthorID.ToString(),
+                    Selected = author.AuthorID == selected
+                });
         }
     }
 }
